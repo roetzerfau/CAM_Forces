@@ -111,6 +111,52 @@ class CAMInterface
       _jump_parameter, extent_a, _position, domain.building_units.size() + 1, face_charge_a);
     return domain.place_bu(bu);
   }
+
+
+
+
+  /*!*********************************************************************************************
+   * \brief Place a particle with costum shape
+   *
+   * \param _position field index of center point; no position is given (-1) -> random position
+   * \param _shape shape of particle
+   * \param _jump_parameter How far hyper plane is allowed to jump.
+   * \return true: particle is placed
+   * \return false: particle  could not be placed. all its cells are removed
+   ************************************************************************************************/
+  bool place_particle(double _jump_parameter = 1,
+                   std::vector<unsigned int> _shape = std::vector<unsigned int>(nx.size(), 0),
+                   int _position = -1,
+                   std::vector<double> _face_charge_v = std::vector<double>(2 * nx.size(), 0))
+  {
+    std::array<double, 2 * nx.size()> face_charge_a;
+    for (unsigned int i = 0; i < _face_charge_v.size(); i++)
+      face_charge_a[i] = _face_charge_v[i];
+
+    std::vector<unsigned int> shape_ref;
+    shape_ref.push_back(0);
+
+    for(unsigned int i = 1; i < _shape.size(); i++){
+       unsigned int ref = CAM::aim<nx>(_shape[i], -_shape[0]);
+       unsigned int difference = CAM::aim<nx>(-ref, 0);
+       shape_ref.push_back(difference);
+    }
+
+    const BuildingUnit<nx> bu = CAM::BuildingUnit<nx>(
+      _jump_parameter, shape_ref, _position, domain.building_units.size() + 1, face_charge_a);
+    return domain.place_bu(bu);
+  }
+
+
+
+
+
+
+
+
+
+
+
   // TODO parameterize this function
   void place_particles()
   {
