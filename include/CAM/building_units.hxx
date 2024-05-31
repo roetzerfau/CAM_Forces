@@ -28,6 +28,19 @@ static constexpr std::array<double, 2 * nx.size()> init_default_face_values()
   std::fill(arr.begin(), arr.end(), 0);
   return arr;
 }
+struct Properties
+{ 
+    unsigned int identity = 1;
+    Properties()
+    {
+      identity = 1;
+    }
+    Properties(std::vector<double> _properties)
+    {
+      identity = _properties[0];
+    }
+    
+};
 /*!*********************************************************************************************
  * \brief Class of building units (bu)
  * \param number index of cells in domain
@@ -61,7 +74,7 @@ class BuildingUnit
   unsigned int reference_field, center_field, number;
 
   Boundary boundary;
-
+  Properties properties;
  public:
   std::array<unsigned int, nx.size()> max_extent;
   /*!*********************************************************************************************
@@ -71,11 +84,13 @@ class BuildingUnit
                const std::vector<unsigned int>& _shape,
                const unsigned int _reference_field,
                const unsigned int _number,
-               const std::array<double, nx.size() * 2> homogen_face_values)
+               const std::array<double, nx.size() * 2> homogen_face_values,
+               CAM::Properties _properties = CAM::Properties())
   : jump_parameter(_jump_parameter),
     shape(_shape),
     reference_field(_reference_field),
-    number(_number)
+    number(_number),
+    properties(_properties)
   {
     boundary.index = CAM::get_boundary_fields<nx>(shape);
 
@@ -155,7 +170,6 @@ class BuildingUnit
     // boundary
     boundary.face_charges.resize(boundary.index.size());
     std::fill(boundary.face_charges.begin(), boundary.face_charges.end(), homogen_face_values);
-
     for (unsigned int i = 0; i < boundary.index.size(); i++)
     {
       std::pair<unsigned int, unsigned int> pair(boundary.index[i], i);
@@ -380,6 +394,43 @@ static CAM::BuildingUnit<nx> create_hyper_plane(
     number = _number;
   return CAM::BuildingUnit<nx>(_jump_parameter, shape, reference_field, number, _face_values);
 }
+
+
+/*!*********************************************************************************************
+ * \brief Particle with given shape 
+ * \param _shape shape of particle 
+ * \tparam nx
+ **********************************************************************************************/
+template <auto nx>
+static CAM::BuildingUnit<nx> create_particle(
+  const double _jump_parameter,
+  const std::vector<unsigned int>& _shape,
+  const int _reference_field = -1,
+  const int _number = -1,
+  const std::array<double, nx.size() * 2> _face_values = CAM::init_default_face_values<nx>(),
+  Properties properties = Properties())
+{
+
+    std::vector<unsigned int> shape;
+
+    for(unsigned int i = 0; i < _shape.size(); i++){
+       shape.push_back(CAM::aim<nx>(_shape[i], -_shape[0] ));
+    }
+
+  unsigned int reference_field, number;
+  if (_reference_field < 0)
+    reference_field = CAM::get_random_field_index<nx>();
+  else
+    reference_field = _reference_field;
+  if (_number <= 0)
+    number = CAM::get_random_field_index<nx>();
+  else
+    number = _number;
+  return CAM::BuildingUnit<nx>(_jump_parameter, shape, reference_field, number, _face_values, properties);
+}
+
+
+
 
 /*!*********************************************************************************************
  * \brief Bu defined by custom shape

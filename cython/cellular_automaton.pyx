@@ -29,12 +29,13 @@ cdef class PythonClassName:
     if _position == "default": _position = -1 
     if _face_charge == "default": _face_charge = [ 0 ]* 2 
     return self.thisptr.place_plane(_jump_parameter, _extent, _position, _face_charge) 
-  def place_particle(self, _jump_parameter, _shape, _position, _face_charge): 
+  def place_particle(self, _jump_parameter, _shape, _position, _face_charge, _properties): 
     if _jump_parameter == "default" : _jump_parameter = 1.0 
     if _shape == "default" : _shape = [ 0,1 ]
     if _position == "default": _position = -1 
     if _face_charge == "default": _face_charge = [ 0 ]* 2 
-    return self.thisptr.place_particle(_jump_parameter, _shape, _position, _face_charge) 
+    if _properties == "default": _properties = [1]
+    return self.thisptr.place_particle(_jump_parameter, _shape, _position, _face_charge, _properties)
   def place_particles(self): 
     self.thisptr.place_particles() 
   def do_cam(self) : 
@@ -44,6 +45,8 @@ cdef class PythonClassName:
     return self.thisptr.eval_measures()
 
 
+  def porosity_d(self):
+    return self.thisptr.porosity_d()
   def average_particle_size_d(self):
     return self.thisptr.average_particle_size_d()
   def particle_size_distribution_d(self) : 

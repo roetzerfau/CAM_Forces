@@ -155,6 +155,20 @@ class Evaluation
     return n_surfaces;
   }
   /*!*********************************************************************************************
+   * \brief   Calculate porosity
+   *
+   * \retval  porosity   
+   **********************************************************************************************/
+  static double porosity(CAM::Domain<nx, fields_array_t>& domain)
+  {
+    unsigned int sum = 0;
+    for(unsigned int i = 0; i < domain.domain_fields.size(); i++)
+    {
+      sum += domain.domain_fields[i] == 0 ? 1 : 0;
+    }
+    return (double)sum/domain.domain_fields.size();
+  }
+  /*!*********************************************************************************************
    * \brief   Find the longest shortest path of particle inside domain.
    *
    * \retval  max_distance     Length of the path.

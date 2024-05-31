@@ -112,9 +112,6 @@ class CAMInterface
     return domain.place_bu(bu);
   }
 
-
-
-
   /*!*********************************************************************************************
    * \brief Place a particle with costum shape
    *
@@ -127,23 +124,16 @@ class CAMInterface
   bool place_particle(double _jump_parameter = 1,
                    std::vector<unsigned int> _shape = std::vector<unsigned int>(nx.size(), 0),
                    int _position = -1,
-                   std::vector<double> _face_charge_v = std::vector<double>(2 * nx.size(), 0))
+                   std::vector<double> _face_charge_v = std::vector<double>(2 * nx.size(), 0),
+                   std::vector<double> _properties = std::vector<double>(1,1))
   {
     std::array<double, 2 * nx.size()> face_charge_a;
     for (unsigned int i = 0; i < _face_charge_v.size(); i++)
       face_charge_a[i] = _face_charge_v[i];
+    CAM::Properties properties = CAM::Properties(_properties);
 
-    std::vector<unsigned int> shape_ref;
-    shape_ref.push_back(0);
-
-    for(unsigned int i = 1; i < _shape.size(); i++){
-       unsigned int ref = CAM::aim<nx>(_shape[i], -_shape[0]);
-       unsigned int difference = CAM::aim<nx>(-ref, 0);
-       shape_ref.push_back(difference);
-    }
-
-    const BuildingUnit<nx> bu = CAM::BuildingUnit<nx>(
-      _jump_parameter, shape_ref, _position, domain.building_units.size() + 1, face_charge_a);
+    const BuildingUnit<nx> bu = CAM::create_particle<nx>(
+      _jump_parameter, _shape, _position, domain.building_units.size() + 1, face_charge_a, properties);
     return domain.place_bu(bu);
   }
 
@@ -228,7 +218,10 @@ class CAMInterface
 
     return meas_v;
   }
-
+  double porosity_d()
+  {
+    return CAM::Evaluation<nx, fields_array_t>::porosity(domain);
+  }
   double average_particle_size_d()
   {
     return CAM::Evaluation<nx, fields_array_t>::average_particle_size(domain);
