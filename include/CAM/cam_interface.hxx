@@ -23,6 +23,7 @@ class CAMInterface
 {
  private:
   CAM::Domain<nx, fields_array_t> domain;
+  fields_array_t local_field;
   unsigned int rand_seed;
 
  public:
@@ -134,6 +135,7 @@ class CAMInterface
 
     const BuildingUnit<nx> bu = CAM::create_particle<nx>(
       _jump_parameter, _shape, _position, domain.building_units.size() + 1, face_charge_a, properties);
+    //std::cout<<_shape.size() <<" shape nof "<<bu.get_shape().size()<<std::endl;
     return domain.place_bu(bu);
   }
 
@@ -201,8 +203,29 @@ class CAMInterface
     //     domain.domain_fields[j] = i * 10;
     //   }
     // }
+    local_field = domain.fields();
+    for(unsigned int field : local_field)
+    {
+      //std::cout<<field<<std::endl;
+      field = 0;
+    }
+    
 
-    return domain.domain_fields;
+      for(unsigned int b = 0; b < domain.building_units.size(); b++)
+      {
+      // std::cout<<domain.building_units[b].get_number()<<" number size "<<domain.building_units[b].get_shape().size() <<" reffield "<<domain.building_units[b].get_reference_field()<<std::endl;
+         for (unsigned int i = 0; i <  domain.building_units[b].get_shape().size() ; i++)
+         {
+           unsigned int field_index = CAM::aim<nx>(domain.building_units[b].get_reference_field(), domain.building_units[b].get_shape()[i]);
+            //std::cout<< i <<" ";
+       // unsigned int field_index = CAM::aim<nx>(domain.building_units[i].get_reference_field(), shape_index);
+       //std::cout<<domain.building_units[b].get_number()<<" i  "<<i<<" "<<domain.building_units[b].get_reference_field()<<" "<<domain.building_units[b].get_shape()[i]<<" "<<field_index<<std::endl;
+        local_field[field_index] =  domain.building_units[b].properties.identity;
+         }
+    }
+   
+  return local_field;
+  //return domain.domain_fields;
   }
 
   std::vector<double> eval_measures()

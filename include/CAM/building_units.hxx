@@ -17,10 +17,12 @@
 #include <random>
 #include <set>
 #include <unordered_map>
+#include <map>
 #include <vector>
 
 namespace CAM
 {
+typedef std::map<int,unsigned int> CounterMap;
 template <auto nx>
 static constexpr std::array<double, 2 * nx.size()> init_default_face_values()
 {
@@ -74,9 +76,10 @@ class BuildingUnit
   unsigned int reference_field, center_field, number;
 
   Boundary boundary;
-  Properties properties;
+
  public:
   std::array<unsigned int, nx.size()> max_extent;
+  Properties properties;
   /*!*********************************************************************************************
    * \brief Construct a new Building Unit object
    ************************************************************************************************/
@@ -416,6 +419,23 @@ static CAM::BuildingUnit<nx> create_particle(
     for(unsigned int i = 0; i < _shape.size(); i++){
        shape.push_back(CAM::aim<nx>(_shape[i], -_shape[0] ));
     }
+
+
+/*CounterMap counts;
+for (int i = 0; i < shape.size(); ++i)
+{
+   CounterMap::iterator it(counts.find(shape[i]));
+   if (it != counts.end()){
+      it->second++;
+   } else {
+      counts[shape[i]] = 1;
+      if(counts[shape[i]] > 1)
+      std::cout<<"Falsch"<<std::endl;
+   }
+}
+if(counts.size() != shape.size())
+std::cout<<counts.size() << " shape "<<shape.size()<<std::endl;*/
+
 
   unsigned int reference_field, number;
   if (_reference_field < 0)

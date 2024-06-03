@@ -38,9 +38,10 @@ def cam_test(n_steps, debug_mode=False):
   const.debug_mode      = debug_mode
   #macro_names = ["DFACE_ATTRACTIVITY", "DROTATION", "DROTATION_COMPOSITES", "DSTENCIL_4_ALL_BUS", "DSUB_COMPOSITES"]
   #const.ca_settings     = [False, False, False, False, False]
-  jump_parameter_composites  = 100
-  jump_parameter = 10
-  aimPor = 0.35
+  jump_parameter_composites  = 20
+  jump_parameter = 20
+  aimPor = 0.90
+  numCells = np.prod(const.nx)
   faces = [1] * 4
   PyCAM = CAM.include(const)
   Domain = PyCAM(jump_parameter_composites)
@@ -76,12 +77,10 @@ def cam_test(n_steps, debug_mode=False):
 
     particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
 
-    data = Domain.fields()
-
     currPor = Domain.porosity_d()
 
     maxUndershoot = 0.005
-    numCells = np.prod(const.nx)
+    
     while (currPor > aimPor):
       print("Porosity ", currPor)
     
@@ -130,32 +129,59 @@ def cam_test(n_steps, debug_mode=False):
       Domain.place_particle(stencil, particle, int(position), faces, properties)
 
 
-  #--------------POM Particle----------------------
-  mat = scipy.io.loadmat("particleShapeLibrary/POMshapes" + str(Nx) + ".mat")
-  POMparticleShapesList = mat['POMparticleShapesList'][0]
-  POMparticleAreas = mat['POMparticleAreas']
-  POMminFeret = mat['POMminFeret'][0]
-  amount = 0.005
-  numSolidCells = np.sum([1 for x in Domain.fields() if x > 0] )
-  numPOMCells = round(amount*numSolidCells)
- # numPOMparticles = zeros(size(POMsizeDistr,1),1);
-  #for i = 1 : length(numPOMparticles)
-  #      numPOMparticles(i) = round(numPOMCells * POMsizeDistr(i,2) / POMsizeDistr(i,1));
- #   end  
+  POMParticleInd_position = []
+  if True:
+    #--------------POM Particle----------------------
+    mat = scipy.io.loadmat("particleShapeLibrary/POMshapes" + str(Nx) + ".mat")
+    POMparticleShapesList = mat['POMparticleShapesList'][0]
+    POMparticleAreas = mat['POMparticleAreas'][0]
+    POMminFeret = mat['POMminFeret'][0]
+    POMsizeDistr = [[10, 0.2],[ 15, 0.3],[ 20 ,0.5]]
+    amount = 0.005
+    numSolidCells = np.sum([1 for x in Domain.fields() if x > 0] )
+    numPOMCells = round(amount*numSolidCells)
+    #print(np.shape(POMsizeDistr)[0])
+    numPOMparticles = [0] * len(POMsizeDistr)
+    for i  in range(len(numPOMparticles)):
+        numPOMparticles[i] = ( round(numPOMCells * POMsizeDistr[i][1] / POMsizeDistr[i][0]))
+    #print(numPOMparticles)
+    for interval in range(len(numPOMparticles)-1, -1, -1):
+      particleCandidatesInds = [i for i in range(len(POMparticleAreas)) if POMparticleAreas[i] == POMsizeDistr[interval][0]]
+      for j in range(numPOMparticles[interval]):
+        numCandidates = len(particleCandidatesInds)
+        # choose candidate
+        randInd =  random.randrange(numCandidates)
+        candInd = particleCandidatesInds[randInd]
+        particle = POMparticleShapesList[candInd]
 
+        properties = [2] 
+        stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
 
-
-
-
-
-
-
-
-
-
-
-
-
+        newPositionFound = False
+        while(not newPositionFound):
+          position =  random.randrange(numCells)
+          #candPos = [i for i in range(numCells) if Domain.fields()[i] == 0]
+          #position =candPos[ random.randrange(len(position))]
+          #print(position)
+          if(Domain.place_particle(stencil, particle, position, faces, properties)):
+            newPositionFound = True
+            POMParticleInd_position.append([candInd, position]) 
+        
+          
+       # print("Len ", len(POMParticleInd_position))
+    with open('POMparticleInd_domain.txt', 'w') as file:
+      for item in POMParticleInd_position:
+        file.write (f"{item[0]}\t{item[1]}\n")
+  if False: 
+    with open('POMPparticleInd_domain.txt', 'r') as file:
+      for line in file:
+        # Split the line into two items using the tab character as delimiter
+        item = line.strip().split('\t')
+        POMParticleInd_position.append(item)
+      for [particleInd, position] in POMParticleInd_position:
+        particle = particleList[int(particleInd)]
+        stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+        Domain.place_particle(stencil, particle, int(position), faces, properties)
 
   save_data = np.zeros( (n_steps + 1, np.prod(const.nx)) ) 
   save_data[0] = Domain.fields()
@@ -168,8 +194,8 @@ def cam_test(n_steps, debug_mode=False):
 
   end_time = datetime.now() 
   print("Program ended at", end_time, "after", end_time-start_time)
-  save_data[(save_data < 2500) & (save_data > 0)] = 1
-  save_data[save_data >= 2500] = 2
+  #save_data[(save_data < 2500) & (save_data > 0)] = 1
+  #save_data[save_data >= 2500] = 2
   if not os.path.exists('output'):  os.makedirs('output')
   plot_to_vtk("output/cam", save_data, const.nx)
   plot_to_file(const.nx, save_data[-1], 'output/camlast.png')
@@ -181,7 +207,7 @@ def cam_test(n_steps, debug_mode=False):
 # Function main.
 # --------------------------------------------------------------------------------------------------
 def main(debug_mode):
-  n_steps =100
+  n_steps =10
   cam_test(n_steps, debug_mode)
 
 
