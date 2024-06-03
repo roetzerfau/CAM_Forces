@@ -384,10 +384,26 @@ std::cout << "Time taken by DoMove: "
    * \brief Definition of face attractivity
    **********************************************************************************************/
   inline static double get_attractivity_between_two_faces(const double charge_face1,
-                                                          const double charge_face2)
+                                                          const unsigned int identity1,
+                                                          const double charge_face2,
+                                                          const unsigned int identity2)
   {
+    if(identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::Soil)
+    {
+      //TODO
+      return  5 * charge_face1 * charge_face2;
+    }
+    if ((identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::POM) || 
+    (identity1 == CAM::ParticleIdentities::POM && identity2 == CAM::ParticleIdentities::Soil))
+    {
+      //TODO
+       return 10 * charge_face1  + charge_face2 * 10;
+
+    }
     // return charge_face1 && charge_face2;
-    return -(charge_face1 * charge_face2);
+   // return -(charge_face1 * charge_face2);
+    	return 0;
+
   }
   /*!*********************************************************************************************
    * \brief   Check attraction of the possible moves for a single bu.
@@ -453,9 +469,10 @@ std::cout << "Time taken by DoMove: "
           opposite_face = (j % 2 == 0) ? j + 1 : j - 1;
 
           // attraction
-
+          //std::cout<<get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity)<<std::endl;
           attraction +=
-            get_attractivity_between_two_faces(faces_neigh[opposite_face], faces_unit[j]);
+            get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity);
+          
 #else
           attraction += 1;
 #endif

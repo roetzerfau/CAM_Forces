@@ -238,7 +238,6 @@ class CAMInterface
       // std::cout << "Meas[" << k << "] = " << meas_a[k] << std::endl;
       meas_v.push_back(meas_a[k]);
     }
-
     return meas_v;
   }
   double porosity_d()

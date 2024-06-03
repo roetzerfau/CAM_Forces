@@ -37,7 +37,7 @@ def cam_test(n_steps, debug_mode=False):
   const.nx              = [Nx,Nx]
   const.debug_mode      = debug_mode
   #macro_names = ["DFACE_ATTRACTIVITY", "DROTATION", "DROTATION_COMPOSITES", "DSTENCIL_4_ALL_BUS", "DSUB_COMPOSITES"]
-  #const.ca_settings     = [False, False, False, False, False]
+  const.ca_settings     = [True, False, False, False, False]
   jump_parameter_composites  = 20
   jump_parameter = 20
   aimPor = 0.90
@@ -46,7 +46,7 @@ def cam_test(n_steps, debug_mode=False):
   PyCAM = CAM.include(const)
   Domain = PyCAM(jump_parameter_composites)
   print("Domain folded")
-  properties = [1] 
+  properties = [1, 1] 
   #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
   
   
@@ -107,6 +107,20 @@ def cam_test(n_steps, debug_mode=False):
         candInd = particleCandidatesInds[randInd]
         particle = particleList[candInd]
 
+        if (minFeretDiam[candInd] < 6.3):
+          properties[1] = 1
+        elif (minFeretDiam[candInd] < 20):
+          properties[1] = 0.5
+        elif (minFeretDiam[candInd] < 63):
+          properties[1] = 0.25
+        else:
+           properties[1] = 0.1
+        
+
+
+
+
+
         position = random.randrange(numCells)
         stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
         if( Domain.place_particle(stencil, particle, position, faces, properties)):
@@ -129,7 +143,9 @@ def cam_test(n_steps, debug_mode=False):
       Domain.place_particle(stencil, particle, int(position), faces, properties)
 
 
+
   POMParticleInd_position = []
+  properties = [2, 0] 
   if True:
     #--------------POM Particle----------------------
     mat = scipy.io.loadmat("particleShapeLibrary/POMshapes" + str(Nx) + ".mat")
@@ -154,7 +170,7 @@ def cam_test(n_steps, debug_mode=False):
         candInd = particleCandidatesInds[randInd]
         particle = POMparticleShapesList[candInd]
 
-        properties = [2] 
+        
         stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
 
         newPositionFound = False
@@ -172,8 +188,8 @@ def cam_test(n_steps, debug_mode=False):
     with open('POMparticleInd_domain.txt', 'w') as file:
       for item in POMParticleInd_position:
         file.write (f"{item[0]}\t{item[1]}\n")
-  if False: 
-    with open('POMPparticleInd_domain.txt', 'r') as file:
+  else: 
+    with open('POMparticleInd_domain.txt', 'r') as file:
       for line in file:
         # Split the line into two items using the tab character as delimiter
         item = line.strip().split('\t')
@@ -181,7 +197,7 @@ def cam_test(n_steps, debug_mode=False):
       for [particleInd, position] in POMParticleInd_position:
         particle = particleList[int(particleInd)]
         stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
-        Domain.place_particle(stencil, particle, int(position), faces, properties)
+        print(Domain.place_particle(stencil, particle, int(position), faces, properties))
 
   save_data = np.zeros( (n_steps + 1, np.prod(const.nx)) ) 
   save_data[0] = Domain.fields()
@@ -207,7 +223,7 @@ def cam_test(n_steps, debug_mode=False):
 # Function main.
 # --------------------------------------------------------------------------------------------------
 def main(debug_mode):
-  n_steps =10
+  n_steps =100
   cam_test(n_steps, debug_mode)
 
 

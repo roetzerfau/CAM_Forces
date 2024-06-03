@@ -22,6 +22,12 @@
 
 namespace CAM
 {
+enum ParticleIdentities
+{
+  Soil = 1,
+  POM = 2
+}ParticleIdentities;
+
 typedef std::map<int,unsigned int> CounterMap;
 template <auto nx>
 static constexpr std::array<double, 2 * nx.size()> init_default_face_values()
@@ -33,16 +39,21 @@ static constexpr std::array<double, 2 * nx.size()> init_default_face_values()
 struct Properties
 { 
     unsigned int identity = 1;
+    double amountReactiveSurfaces = 1;
     Properties()
     {
       identity = 1;
+      amountReactiveSurfaces = 1;
+      
     }
     Properties(std::vector<double> _properties)
     {
       identity = _properties[0];
+      amountReactiveSurfaces = _properties[1];
     }
     
 };
+
 /*!*********************************************************************************************
  * \brief Class of building units (bu)
  * \param number index of cells in domain
@@ -67,9 +78,12 @@ class BuildingUnit
    **********************************************************************************************/
   struct Boundary
   {
-    std::vector<unsigned int> index;
+    std::vector<unsigned int> index;//field_index
     std::vector<std::array<double, nx.size() * 2>> face_charges;
+    std::vector<unsigned int> outerFacesPerCell;
+    std::vector<std::pair<unsigned int, unsigned int>> pair_index_direction_face_charges;
     std::map<unsigned int, unsigned int> index_by_relation_to_reference;
+
   };
   double jump_parameter;
   std::vector<unsigned int> shape, rotation_points;
@@ -171,14 +185,76 @@ class BuildingUnit
     // rotation_points.push_back(rotation_point);
 
     // boundary
+   
     boundary.face_charges.resize(boundary.index.size());
-    std::fill(boundary.face_charges.begin(), boundary.face_charges.end(), homogen_face_values);
+    boundary.outerFacesPerCell.resize(boundary.index.size());
+
+    std::fill(boundary.face_charges.begin(), boundary.face_charges.end(), CAM::init_default_face_values<nx>());
+    unsigned int neigh_index;
+    
+    unsigned int amountFaces = 0;
+    for(unsigned int i = 0; i < boundary.face_charges.size(); i++)
+    {
+      for (unsigned int j = 0; j < 2 * nx.size(); ++j)
+      {
+        neigh_index = aim<nx>(boundary.index[i], direct_neigh<nx>(j));
+        if(std::find(boundary.index.begin(), boundary.index.end(), neigh_index) == boundary.index.end())
+        {
+          amountFaces++;
+          boundary.outerFacesPerCell[i]++;
+          std::pair<unsigned int, unsigned int> pair(i, j);
+          boundary.pair_index_direction_face_charges.push_back(pair);
+        }
+    }
+
+  //  std::cout<<" outerFacesPerCell[i] "<<  boundary.outerFacesPerCell[i]<<std::endl;
+    }
+
+   // std::cout<<"AmoinFA "<< amountFaces<<" "<<boundary.pair_index_direction_face_charges.size()<<std::endl;
+    unsigned int aimAmountFaces  = round(_properties.amountReactiveSurfaces * boundary.pair_index_direction_face_charges.size());
+    unsigned int currentAmountFaces = 0;
+
+
+    std::vector<unsigned int> ind;
+    for(unsigned int i = 0; i < boundary.pair_index_direction_face_charges.size(); i++)
+        ind.push_back(i);
+
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine e(seed);
+    std::shuffle(std::begin(ind), std::end(ind), e);
+
+    for(unsigned int ii = 0; ii < boundary.pair_index_direction_face_charges.size(); ii++)
+    {
+      unsigned int i = ind[ii]; 
+     if(currentAmountFaces < aimAmountFaces)
+      {
+      unsigned int index = boundary.pair_index_direction_face_charges[i].first;
+      unsigned int direction = boundary.pair_index_direction_face_charges[i].second;
+      boundary.face_charges[index][direction] = homogen_face_values[direction];
+      currentAmountFaces++;
+      }
+
+    }
+    
+   /* for(unsigned int i = 0; i < boundary.face_charges.size(); i++)
+    {
+       for (unsigned int j = 0; j < 2 * nx.size(); ++j)
+      {
+     std::cout<< boundary.face_charges[i][j]<<" ";
+      }
+      std::cout<<std::endl;
+    }
+    */
+
+   
+
     for (unsigned int i = 0; i < boundary.index.size(); i++)
     {
       std::pair<unsigned int, unsigned int> pair(boundary.index[i], i);
       // std::make_pair<unsigned int, unsigned int>(boundary.index[i], i)
       boundary.index_by_relation_to_reference.insert(pair);
     }
+   // std::cout<<"end"<<std::endl;
   }
 
   void set_reference_field(const unsigned int _reference_field)
@@ -204,12 +280,11 @@ class BuildingUnit
     const unsigned int _relation_to_reference) const
   {
     // std::cout <<_relation_to_reference <<std::endl;
-    /*auto it = boundary.index_by_relation_to_reference.find(_relation_to_reference);
+    auto it = boundary.index_by_relation_to_reference.find(_relation_to_reference);
     if (it == boundary.index_by_relation_to_reference.end())
-      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!index not found "
-    <<_relation_to_reference <<std::endl;
+      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!index not found " <<_relation_to_reference <<std::endl;
      //only works for homogenous boundary
-    return boundary.face_charges[it->second];*/
+    //return boundary.face_charges[it->second];
     return boundary.face_charges[0];
   }
 
