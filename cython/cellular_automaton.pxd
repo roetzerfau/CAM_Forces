@@ -14,7 +14,7 @@ cdef extern from "<CAM/cam_interface.hxx>" :
     void place_single_cell_bu_randomly( double _jump_parameter, double _porosity, unsigned int random_seed)
     bool place_sphere(double _jump_parameter, double _radius, int _position, vector[double] _face_charge) 
     bool place_plane(double _jump_parameter, vector[unsigned int] _extent, int _position, vector[double] _face_charge)
-    bool place_particle(double _jump_parameter, vector[unsigned int] _shape, int _position, vector[double] _face_charge, vector[double] _properties )
+    bool place_particle(double _jump_parameter, vector[unsigned int] _shape, vector[unsigned int] _nx_base, int _position, vector[double] _face_charge, vector[double] _properties )
     void place_particles()
 
     double porosity_d()

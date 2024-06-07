@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import csv
 import random
 
+n_steps =10
 def stencil_size(jump_parameter, area, nx):
-  return (jump_parameter/(area ** (1.0/len(nx))))
+  return min(5,np.ceil(jump_parameter/(area ** (1.0/len(nx)))))
 
 # --------------------------------------------------------------------------------------------------
 # Function bilaplacian_test.
@@ -31,26 +32,34 @@ def cam_test(n_steps, debug_mode=False):
       "python_functions")
     from plot import plot, plot_to_file, plot_to_vtk
   print("Compiled")
-  Nx = 500
+  scaling = 2.5
+  Nx = int(2500/scaling)
+  
+  print(Nx)
+
+  Nx_file = 250
+  nx_base =  [Nx_file, Nx_file]
 
   const                 = CAM.config()
   const.nx              = [Nx,Nx]
   const.debug_mode      = debug_mode
   #macro_names = ["DFACE_ATTRACTIVITY", "DROTATION", "DROTATION_COMPOSITES", "DSTENCIL_4_ALL_BUS", "DSUB_COMPOSITES"]
   const.ca_settings     = [True, False, False, False, False]
-  jump_parameter_composites  = 20
-  jump_parameter = 20
-  aimPor = 0.90
+  
+  jump_parameter_composites  = 20/scaling
+  jump_parameter = 20/scaling
+  aimPor = 0.50
   numCells = np.prod(const.nx)
+  
   faces = [1] * 4
   PyCAM = CAM.include(const)
   Domain = PyCAM(jump_parameter_composites)
   print("Domain folded")
-  properties = [1, 1] 
+  
   #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
   
   
-  mat = scipy.io.loadmat("particleShapeLibrary/particleShapes" + str(Nx) + "rotations.mat")
+  mat = scipy.io.loadmat("particleShapeLibrary/particleShapes" + str(Nx_file) + "rotations.mat")
   particleList = mat['fullParticleList'][0]
   minFeretDiam = mat['fullParticleMinFeretDiameters']
   particleAreas = mat['fullParticleAreas'][0]
@@ -68,45 +77,97 @@ def cam_test(n_steps, debug_mode=False):
         intUpBound.append(float(row[1]))
         intSize.append(float(row[2]))
  
+  fileSoilParticle = 'particleInd_domain_' + str(Nx) + '.txt'
+  filePOMParticle = 'POMparticleInd_domain_' + str(Nx) + '.txt'
+  fileDomain = 'file_domain_' + str(Nx) + '.txt'
+  folder_output = 'output' + str(Nx) + '/'
 
-  newDomain = False
-  if newDomain:
-    numIntervals = len(intSize)
 
-    interval = numIntervals - 1   
+  if False:
+    properties = [1, 1, scaling] 
+    particle = particleList[10000]
+    #particle = particleList[-100]
+    #particle = particleList[0]
+    #print(particle)
+    #particle = [0,100,1,101,2,102]
+    position = 0
+    stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+    Domain.place_particle(stencil, particle,nx_base, position, faces, properties)#, 
+    #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
+  else: 
+    newDomain = True
+    if newDomain:
+      numIntervals = len(intSize)
 
-    particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
+      interval = numIntervals - 1   
 
-    currPor = Domain.porosity_d()
+      particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
 
-    maxUndershoot = 0.005
-    
-    while (currPor > aimPor):
-      print("Porosity ", currPor)
-    
-      # ind max. particle Size s.t. interval is only undershot by maxUndershoot
+      currPor = Domain.porosity_d()
 
-      maxParticleSize = (np.sum(intSize[interval:numIntervals]) + maxUndershoot) * (1-aimPor) * numCells -  (1-currPor) * numCells
-  
-    # helper to find candidates that don't undershoot too much
-      particleCandidatesHelper = [i for i in range(len(particleAreas)) if particleAreas[i] <= maxParticleSize]
+      maxUndershoot = 0.005
       
-      particleCandidatesInds = list(set(particleCandidatesHelper).intersection(set(particleCandidatesInt)))
+      while (currPor > aimPor):
+        print("Porosity ", currPor)
+      
+        # ind max. particle Size s.t. interval is only undershot by maxUndershoot
 
-      numCandidates = len(particleCandidatesInds)
-
-      #continue if no candidate found
-      if(numCandidates == 0 or ( np.sum(intSize[interval:numIntervals]) * (1-aimPor) < (1-currPor) )):
-          interval = interval - 1
-
-          print('Start placing particles of size >= ',intLowBound[interval], 'and <', intUpBound[interval])
-          particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
-      else:
+        maxParticleSize = ((np.sum(intSize[interval:numIntervals]) + maxUndershoot) * (1-aimPor) * numCells -  (1-currPor) * numCells) * scaling**len(const.nx)
+    
+      # helper to find candidates that don't undershoot too much
+        particleCandidatesHelper = [i for i in range(len(particleAreas)) if particleAreas[i] <= maxParticleSize]
         
-        randInd =  random.randrange(numCandidates)
-        candInd = particleCandidatesInds[randInd]
-        particle = particleList[candInd]
+        particleCandidatesInds = list(set(particleCandidatesHelper).intersection(set(particleCandidatesInt)))
 
+        numCandidates = len(particleCandidatesInds)
+
+        #continue if no candidate found
+        if(numCandidates == 0 or ( np.sum(intSize[interval:numIntervals]) * (1-aimPor) < (1-currPor) )):
+            interval = interval - 1
+
+            print('Start placing particles of size >= ',intLowBound[interval], 'and <', intUpBound[interval])
+            particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
+        else:
+          
+          randInd =  random.randrange(numCandidates)
+          candInd = particleCandidatesInds[randInd]
+          particle = particleList[candInd]
+
+          properties = [1, 1, scaling] 
+          if (minFeretDiam[candInd] < 6.3):
+            properties[1] = 1
+          elif (minFeretDiam[candInd] < 20):
+            properties[1] = 0.5
+          elif (minFeretDiam[candInd] < 63):
+            properties[1] = 0.25
+          else:
+            properties[1] = 0.1
+          
+
+
+
+
+
+          position = random.randrange(numCells)
+          stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+          if( Domain.place_particle(stencil, particle,nx_base, position, faces, properties)):
+            particleInd_position.append([candInd, position]) 
+            
+        currPor = Domain.porosity_d() 
+
+      with open(fileSoilParticle, 'w') as file:
+        for item in particleInd_position:
+          file.write (f"{item[0]}\t{item[1]}\n")
+    else:
+      with open(fileSoilParticle, 'r') as file:
+        for line in file:
+          # Split the line into two items using the tab character as delimiter
+          item = line.strip().split('\t')
+          particleInd_position.append(item)
+      for [particleInd, position] in particleInd_position:
+        particle = particleList[int(particleInd)]
+        stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+        properties = [1, 1, scaling] 
         if (minFeretDiam[candInd] < 6.3):
           properties[1] = 1
         elif (minFeretDiam[candInd] < 20):
@@ -114,97 +175,76 @@ def cam_test(n_steps, debug_mode=False):
         elif (minFeretDiam[candInd] < 63):
           properties[1] = 0.25
         else:
-           properties[1] = 0.1
-        
+            properties[1] = 0.1
+
+        Domain.place_particle(stencil, particle,nx_base,int(position), faces, properties)
 
 
 
+    POMParticleInd_position = []
+    properties = [2, 0, scaling] 
+    print("POMParticles")
+    if newDomain:
+      #--------------POM Particle----------------------
+      mat = scipy.io.loadmat("particleShapeLibrary/POMshapes" + str(Nx_file) + ".mat")
+      POMparticleShapesList = mat['POMparticleShapesList'][0]
+      POMparticleAreas = mat['POMparticleAreas'][0]
+      POMminFeret = mat['POMminFeret'][0]
+      POMsizeDistr = [[10, 0.2],[ 15, 0.3],[ 20 ,0.5]]
+      amount = 0.005
+      numSolidCells = np.sum([1 for x in Domain.fields() if x > 0] )
+      numPOMCells = round(amount*numSolidCells * scaling**len(const.nx))
+      #print(np.shape(POMsizeDistr)[0])
+      numPOMparticles = [0] * len(POMsizeDistr)
+      for i  in range(len(numPOMparticles)):
+          numPOMparticles[i] = ( round(numPOMCells * POMsizeDistr[i][1] / POMsizeDistr[i][0]))
+      #print(numPOMparticles)
+      for interval in range(len(numPOMparticles)-1, -1, -1):
+        particleCandidatesInds = [i for i in range(len(POMparticleAreas)) if POMparticleAreas[i] == POMsizeDistr[interval][0]]
+        for j in range(numPOMparticles[interval]):
+          numCandidates = len(particleCandidatesInds)
+          # choose candidate
+          randInd =  random.randrange(numCandidates)
+          candInd = particleCandidatesInds[randInd]
+          particle = POMparticleShapesList[candInd]
 
-
-        position = random.randrange(numCells)
-        stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
-        if( Domain.place_particle(stencil, particle, position, faces, properties)):
-          particleInd_position.append([candInd, position]) 
           
-      currPor = Domain.porosity_d() 
+          stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
 
-    with open('particleInd_domain.txt', 'w') as file:
-      for item in particleInd_position:
-        file.write (f"{item[0]}\t{item[1]}\n")
-  else:
-    with open('particleInd_domain.txt', 'r') as file:
-      for line in file:
-        # Split the line into two items using the tab character as delimiter
-        item = line.strip().split('\t')
-        particleInd_position.append(item)
-    for [particleInd, position] in particleInd_position:
-      particle = particleList[int(particleInd)]
-      stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
-      Domain.place_particle(stencil, particle, int(position), faces, properties)
-
-
-
-  POMParticleInd_position = []
-  properties = [2, 0] 
-  if True:
-    #--------------POM Particle----------------------
-    mat = scipy.io.loadmat("particleShapeLibrary/POMshapes" + str(Nx) + ".mat")
-    POMparticleShapesList = mat['POMparticleShapesList'][0]
-    POMparticleAreas = mat['POMparticleAreas'][0]
-    POMminFeret = mat['POMminFeret'][0]
-    POMsizeDistr = [[10, 0.2],[ 15, 0.3],[ 20 ,0.5]]
-    amount = 0.005
-    numSolidCells = np.sum([1 for x in Domain.fields() if x > 0] )
-    numPOMCells = round(amount*numSolidCells)
-    #print(np.shape(POMsizeDistr)[0])
-    numPOMparticles = [0] * len(POMsizeDistr)
-    for i  in range(len(numPOMparticles)):
-        numPOMparticles[i] = ( round(numPOMCells * POMsizeDistr[i][1] / POMsizeDistr[i][0]))
-    #print(numPOMparticles)
-    for interval in range(len(numPOMparticles)-1, -1, -1):
-      particleCandidatesInds = [i for i in range(len(POMparticleAreas)) if POMparticleAreas[i] == POMsizeDistr[interval][0]]
-      for j in range(numPOMparticles[interval]):
-        numCandidates = len(particleCandidatesInds)
-        # choose candidate
-        randInd =  random.randrange(numCandidates)
-        candInd = particleCandidatesInds[randInd]
-        particle = POMparticleShapesList[candInd]
-
-        
-        stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
-
-        newPositionFound = False
-        while(not newPositionFound):
-          position =  random.randrange(numCells)
-          #candPos = [i for i in range(numCells) if Domain.fields()[i] == 0]
-          #position =candPos[ random.randrange(len(position))]
-          #print(position)
-          if(Domain.place_particle(stencil, particle, position, faces, properties)):
-            newPositionFound = True
-            POMParticleInd_position.append([candInd, position]) 
-        
+          newPositionFound = False
+          while(not newPositionFound):
+            position =  random.randrange(numCells)
+            #candPos = [i for i in range(numCells) if Domain.fields()[i] == 0]
+            #position =candPos[ random.randrange(len(position))]
+            #print(position)
+            if(Domain.place_particle(stencil, particle,nx_base,position, faces, properties)):
+              newPositionFound = True
+              POMParticleInd_position.append([candInd, position]) 
+              currPor = Domain.porosity_d() 
+              print("Porosity ", currPor)
           
-       # print("Len ", len(POMParticleInd_position))
-    with open('POMparticleInd_domain.txt', 'w') as file:
-      for item in POMParticleInd_position:
-        file.write (f"{item[0]}\t{item[1]}\n")
-  else: 
-    with open('POMparticleInd_domain.txt', 'r') as file:
-      for line in file:
-        # Split the line into two items using the tab character as delimiter
-        item = line.strip().split('\t')
-        POMParticleInd_position.append(item)
-      for [particleInd, position] in POMParticleInd_position:
-        particle = particleList[int(particleInd)]
-        stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
-        print(Domain.place_particle(stencil, particle, int(position), faces, properties))
+            
+        # print("Len ", len(POMParticleInd_position))
+      with open(filePOMParticle, 'w') as file:
+        for item in POMParticleInd_position:
+          file.write (f"{item[0]}\t{item[1]}\n")
+    else:
+      with open(filePOMParticle, 'r') as file:
+        for line in file:
+          # Split the line into two items using the tab character as delimiter
+          item = line.strip().split('\t')
+          POMParticleInd_position.append(item)
+        for [particleInd, position] in POMParticleInd_position:
+          particle = particleList[int(particleInd)]
+          stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+          print(Domain.place_particle(stencil, particle,nx_base, int(position), faces, properties))
 
   save_data = np.zeros( (n_steps + 1, np.prod(const.nx)) ) 
+  save_data_single = np.zeros( (1, np.prod(const.nx)) ) 
   save_data[0] = Domain.fields()
-  print("hat")
   for step in range(n_steps):
     Domain.do_cam()
-    print("tes1")
+    print("step ", step)
     save_data[step+1] = Domain.fields()
 
 
@@ -212,18 +252,25 @@ def cam_test(n_steps, debug_mode=False):
   print("Program ended at", end_time, "after", end_time-start_time)
   #save_data[(save_data < 2500) & (save_data > 0)] = 1
   #save_data[save_data >= 2500] = 2
-  if not os.path.exists('output'):  os.makedirs('output')
-  plot_to_vtk("output/cam", save_data, const.nx)
-  plot_to_file(const.nx, save_data[-1], 'output/camlast.png')
-  plot_to_file(const.nx, save_data[0], 'output/cam0.png')
+  if not os.path.exists(folder_output):  os.makedirs(folder_output)
+  save_data_single[0] = save_data[-1]
+  #plot_to_vtk(folder_output+ "cam", save_data_single, const.nx)
+  with open(fileDomain, 'w') as file:
+    for data in save_data[-1]:
+      file.write('%d \n' % data)
+      #file.write(f"{data}\n")
+  print("Plot: ", folder_output)
+  plot_to_file(const.nx, save_data[-1], folder_output + 'camlast.png')
+  plot_to_file(const.nx, save_data[0], folder_output+ 'cam0.png')
+
   #plot(const.nx, save_data, 0)
 
-  os.system("cp output/ /mnt/c/users/maxro/Downloads/ -r")
+  os.system("cp " + folder_output + " /mnt/c/users/maxro/Downloads/ -r")
 # --------------------------------------------------------------------------------------------------
 # Function main.
 # --------------------------------------------------------------------------------------------------
 def main(debug_mode):
-  n_steps =100
+
   cam_test(n_steps, debug_mode)
 
 

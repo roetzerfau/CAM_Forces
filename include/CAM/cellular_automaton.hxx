@@ -397,6 +397,7 @@ std::cout << "Time taken by DoMove: "
     (identity1 == CAM::ParticleIdentities::POM && identity2 == CAM::ParticleIdentities::Soil))
     {
       //TODO
+     // std::cout<<"POM "<<charge_face1 << " "<<charge_face2<<std::endl;
        return 10 * charge_face1  + charge_face2 * 10;
 
     }

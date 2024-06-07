@@ -41,6 +41,20 @@ static constexpr unsigned int n_fields()
     n_field *= nx[i];
   return n_field;
 }
+/*!*************************************************************************************************
+NX_base
+ * \brief   Calculates the size of the domain.
+ *
+ * \retval n_field        size of the domain
+ **************************************************************************************************/
+template <auto nx>
+static constexpr unsigned int n_fields(std::array<unsigned int, nx.size()> _nx_base)
+{
+  unsigned int n_field = 1;
+  for (unsigned int i = 0; i < _nx_base.size(); ++i)
+    n_field *= _nx_base[i];
+  return n_field;
+}
 template <auto nx>
 static constexpr unsigned int get_random_field_index()
 {
@@ -72,6 +86,22 @@ static constexpr std::array<unsigned int, 2 * nx.size() + 1> get_direct_neigh_pr
   return direct_neigh_precomputed;
 }
 
+/*!*********************************************************************************************
+BASE_NX
+ * \brief Finds the movement to a direct neighbor within von Neumann neighborhood
+ * each dimension two neighbors (left and right)
+ * \param index 0 < index < 2 * nx.size(). index of neighbor
+ * \return move
+ **************************************************************************************************/
+template <auto nx>
+static constexpr int direct_neigh(const unsigned int index, const std::array<unsigned int,nx.size()> _nx_base)
+{
+  //static_assert(_nx.size() != 0, "Dimension of zero does not make sense.");
+  int direct_neigh = (index % 2 == 0) ? -1 : 1;
+  for (unsigned int i = 0; i < index / 2; ++i)
+    direct_neigh *= _nx_base[i];
+  return direct_neigh;
+}
 /*!*********************************************************************************************
  * \brief Constexpr power function
  **************************************************************************************************/
@@ -122,6 +152,28 @@ static constexpr unsigned int aim(const int position, const int move)
   }
   return new_pos;
 }
+/*!*************************************************************************************************
+BASE_NX
+ * \brief   Find field if one moves from position to move.
+ *
+ * \param   position  Current position of field that may move.
+ * \param   move      Index shift induced by possible move.
+ * \retval  index     Index of move target.
+ **************************************************************************************************/
+template <auto nx>
+static constexpr unsigned int aim(const int position, const int move, std::array<unsigned int, nx.size()> _nx_base)
+{
+  unsigned int coord, new_pos = 0;
+  int direct_neigh_i;
+  for (unsigned int i = 0; i < _nx_base.size(); ++i)
+  {
+    direct_neigh_i = direct_neigh<nx>(2 * i + 1, _nx_base);
+    coord = ((position) / direct_neigh_i + (move) / direct_neigh_i + n_fields<nx>(_nx_base)) % _nx_base[i];
+    new_pos += coord * direct_neigh_i;
+  }
+  return new_pos;
+}
+
 /*!*************************************************************************************************
  * \brief  get index after rotation
  *

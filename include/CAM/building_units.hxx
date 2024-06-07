@@ -40,16 +40,19 @@ struct Properties
 { 
     unsigned int identity = 1;
     double amountReactiveSurfaces = 1;
+    double scaling = 1;
     Properties()
     {
       identity = 1;
       amountReactiveSurfaces = 1;
+      scaling = 1;
       
     }
     Properties(std::vector<double> _properties)
     {
       identity = _properties[0];
       amountReactiveSurfaces = _properties[1];
+      scaling = _properties[2];
     }
     
 };
@@ -109,6 +112,7 @@ class BuildingUnit
     number(_number),
     properties(_properties)
   {
+    //std::cout<<"NewParticle"<<std::endl;
     boundary.index = CAM::get_boundary_fields<nx>(shape);
 
     std::array<unsigned int, nx.size()> max_extent_z;
@@ -135,11 +139,11 @@ class BuildingUnit
       else
         ++it;
     }
-    // std::cout<<"extent ";
+  // std::cout<<"extent ";
     for (unsigned int i = 0; i < max_extent_z.size(); i++)
     {
       max_extent[i] = max_extent_z[i] + 1;
-      // std::cout<<max_extent[i]<< " ";
+     // std::cout<<max_extent[i]<< " ";
     }
     // std::cout<<std::endl;
 
@@ -483,17 +487,115 @@ template <auto nx>
 static CAM::BuildingUnit<nx> create_particle(
   const double _jump_parameter,
   const std::vector<unsigned int>& _shape,
+  const std::array<unsigned int, nx.size()> _nx_base,
   const int _reference_field = -1,
   const int _number = -1,
   const std::array<double, nx.size() * 2> _face_values = CAM::init_default_face_values<nx>(),
   Properties properties = Properties())
 {
 
-    std::vector<unsigned int> shape;
+ //   std::cout<<"create_partilce"<<std::endl;
+    
+    std::vector<unsigned int> shape =  _shape;
+    std::vector<unsigned int> shape_final;
+ double scaling = properties.scaling;
+/*for(unsigned int i = 0; i < _shape.size(); i++){
+       shape.push_back(CAM::aim<nx>(_shape[i], -_shape[0], _nx_base ));
+    }*/
 
-    for(unsigned int i = 0; i < _shape.size(); i++){
-       shape.push_back(CAM::aim<nx>(_shape[i], -_shape[0] ));
+    //translate to positive position
+    
+   //  std::cout<<"movemenet"<<std::endl;
+    unsigned int movement = 0;
+    for (unsigned int i = 0; i < _nx_base.size(); ++i)
+    {
+       unsigned int direct_neigh_i = direct_neigh<nx>(2 * i + 1, _nx_base);
+       std::array<unsigned int, _nx_base.size()> max_nx;
+       std::array<unsigned int, _nx_base.size()> m_nx;
+      std::fill(max_nx.begin(), max_nx.end(), uint_max);
+
+       for(unsigned int m = 0; m < _nx_base[i]; m++)
+       {
+        std::vector<unsigned int> max_v;
+      for(unsigned int s = 0; s < shape.size(); s++)
+       {
+          unsigned int pos = CAM::aim<nx>(shape[s], direct_neigh_i * m , _nx_base);
+          max_v.push_back((pos / direct_neigh_i  + n_fields<nx>(_nx_base)) % _nx_base[i] );
+        }
+        unsigned int max = *max_element(max_v.begin(), max_v.end());
+       if(max < max_nx[i])
+       {
+        m_nx[i] = m ;
+        max_nx[i] = max;
+       }
+     
+       }
+      //std::cout<<i<<" "<<_nx_base[i]<<" "<<_nx_base.size()<<" " <<m_nx[i]<< " "<<max_nx[i]<<std::endl; 
+       movement +=  direct_neigh_i * m_nx[i];
     }
+
+
+
+    
+    for(unsigned int s = 0; s < shape.size(); s++){
+       shape[s] = (CAM::aim<nx>(shape[s], movement, _nx_base ));
+      
+      unsigned int coord, new_pos = 0;
+      int direct_neigh_i, direct_neigh_i_base;
+      for (unsigned int i = 0; i < _nx_base.size(); ++i)
+      {
+        direct_neigh_i_base = direct_neigh<nx>(2 * i + 1, _nx_base);
+        direct_neigh_i = direct_neigh<nx>(2 * i + 1, nx);
+       // std::cout<<direct_neigh_i<<" "<<direct_neigh_i_base<<std::endl;
+        coord = (((shape[s]) / direct_neigh_i_base + n_fields<nx>(_nx_base)) % _nx_base[i])/scaling;
+        new_pos += coord * direct_neigh_i;
+      }
+    //  std::cout<<shape[s]<<" "<<new_pos<<std::endl;
+      if(std::find(shape_final.begin(), shape_final.end(), new_pos) == shape_final.end())
+        shape_final.push_back(new_pos);
+      //shape[s] = new_pos;
+      
+    }
+
+
+
+constexpr std::array<unsigned int, 2 * nx.size() + 1> direct_neigh_precomputed =  get_direct_neigh_precomputed<nx>();
+
+  if (false)
+  {
+    //std::cout<<"scaling"<<std::endl;
+  
+   //std::cout<<scaling<<std::endl;
+    std::vector<unsigned int> scaled_shape;
+   
+    for(unsigned int s = 0; s < shape.size(); s++)
+    {
+      unsigned int coord, new_pos = 0;
+      int direct_neigh_i;
+      for (unsigned int i = 0; i < nx.size(); ++i)
+      {
+        direct_neigh_i = direct_neigh_precomputed[2 * i + 1];
+        
+       // coord = int((shape[s] / direct_neigh_i / scaling) + n_fields<nx>()) % nx[i];
+        coord = ((shape[s] / direct_neigh_i  + n_fields<nx>(_nx_base)) % _nx_base[i])/scaling;
+
+        new_pos += coord * direct_neigh_i;
+      }
+     // std::cout<<shape[s] <<" "<<new_pos<<std::endl;
+      if(std::find(scaled_shape.begin(), scaled_shape.end(), new_pos) == scaled_shape.end())
+        scaled_shape.push_back(new_pos);
+    }
+    }
+
+
+
+
+
+
+
+
+   // std::cout<<"sca "<<scaled_shape.size()<<std::endl;
+    
 
 
 /*CounterMap counts;

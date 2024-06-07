@@ -132,6 +132,8 @@ class Domain
     building_units.push_back(_unit);
     return true;
   }
+  //TODO maximum Ball
+  
   /*!*********************************************************************************************
    * \brief  Finds composites (particles containing more then one bu) in domain and stores
    * Combining particles/subaggregates as long as the connections are above a minimum threshold

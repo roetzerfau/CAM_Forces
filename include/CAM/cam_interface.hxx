@@ -124,17 +124,24 @@ class CAMInterface
    ************************************************************************************************/
   bool place_particle(double _jump_parameter = 1,
                    std::vector<unsigned int> _shape = std::vector<unsigned int>(nx.size(), 0),
+                   std::vector<unsigned int> _nx_base_v = std::vector<unsigned int>(nx),
                    int _position = -1,
                    std::vector<double> _face_charge_v = std::vector<double>(2 * nx.size(), 0),
                    std::vector<double> _properties = std::vector<double>(1,1))
   {
+
+    std::array<unsigned int, nx.size()> nx_base_a;
+    for (unsigned int i = 0; i < _nx_base_v.size(); i++)
+      nx_base_a[i] = _nx_base_v[i];
     std::array<double, 2 * nx.size()> face_charge_a;
     for (unsigned int i = 0; i < _face_charge_v.size(); i++)
       face_charge_a[i] = _face_charge_v[i];
+
+
     CAM::Properties properties = CAM::Properties(_properties);
 
     const BuildingUnit<nx> bu = CAM::create_particle<nx>(
-      _jump_parameter, _shape, _position, domain.building_units.size() + 1, face_charge_a, properties);
+      _jump_parameter, _shape, nx_base_a, _position, domain.building_units.size() + 1, face_charge_a, properties);
     //std::cout<<_shape.size() <<" shape nof "<<bu.get_shape().size()<<std::endl;
     return domain.place_bu(bu);
   }
