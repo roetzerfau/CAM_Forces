@@ -623,7 +623,7 @@ std::cout<<counts.size() << " shape "<<shape.size()<<std::endl;*/
     number = CAM::get_random_field_index<nx>();
   else
     number = _number;
-  return CAM::BuildingUnit<nx>(_jump_parameter, shape, reference_field, number, _face_values, properties);
+  return CAM::BuildingUnit<nx>(_jump_parameter, shape_final, reference_field, number, _face_values, properties);
 }
 
 

@@ -32,6 +32,7 @@ def plot_to_file(axes, save_data, file_name, text = 'boxed italics text in data 
   # ax.set_title(text)
   plot_update(axes, save_data, ax)
   fig.savefig(file_name, dpi=400)
+  print("file plotted")
 # save to vtk file for analysing in paraview 
 def plot_to_vtk(filename, data, shape):
   n_steps = np.shape(data)[0]
@@ -61,6 +62,7 @@ def plot_to_vtk(filename, data, shape):
     cellData={"cells": data[step]},
     )
   g.save()
+  print("vtk plotted")
 
 
 def plot_update(axes, data, ax=plt):
