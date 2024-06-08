@@ -119,6 +119,8 @@ def cam_test(n_steps, debug_mode=False):
       interval = numIntervals - 1   
 
       particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
+      fields = Domain.fields()
+      positionCandidates = [i for i in range(len(fields)) if fields[i] == 0]
 
       currPor = Domain.porosity_d()
 
@@ -144,7 +146,8 @@ def cam_test(n_steps, debug_mode=False):
 
             print('Start placing particles of size >= ',intLowBound[interval], 'and <', intUpBound[interval])
             particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
-            #positionCandidates = 
+            fields = Domain.fields()
+            positionCandidates = [i for i in range(len(fields)) if fields[i] == 0]
         else:
           
           randInd =  random.randrange(numCandidates)
@@ -166,7 +169,8 @@ def cam_test(n_steps, debug_mode=False):
 
 
 
-          position = random.randrange(numCells)
+          #position = random.randrange(numCells)
+          position = positionCandidates[random.randrange(len(positionCandidates))]
           stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
           if( Domain.place_particle(stencil, particle,nx_base, position, faces, properties)):
             particleInd_position.append([candInd, position]) 
