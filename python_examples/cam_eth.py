@@ -32,7 +32,7 @@ def cam_test(n_steps, debug_mode=False):
       "python_functions")
     from plot import plot, plot_to_file, plot_to_vtk
   print("Compiled")
-  scaling = 2.5
+  scaling = 1
   Nx = int(2500/scaling)
   
   print(Nx)
@@ -48,7 +48,7 @@ def cam_test(n_steps, debug_mode=False):
   
   jump_parameter_composites  = 20/scaling
   jump_parameter = 20/scaling
-  aimPor = 0.50
+  aimPor = 0.35
   numCells = np.prod(const.nx)
   
   faces = [1] * 4
