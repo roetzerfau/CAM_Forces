@@ -27,6 +27,11 @@ enum ParticleIdentities
   Soil = 1,
   POM = 2
 }ParticleIdentities;
+struct WeightParticleConnections
+{
+  double Mineral_Mineral_reactive = 1;
+  double POM_Mineral_reactive = 5;
+}WeightParticleConnections;
 
 typedef std::map<int,unsigned int> CounterMap;
 template <auto nx>
@@ -348,6 +353,7 @@ class BuildingUnit
     }
     for (unsigned int i = 0; i < boundary.index.size(); i++)
     {
+
       // std::cout<<"before "<<shape[n_interior_cells +i]<<std::endl;
       shape[n_interior_cells + i] = get_rotated_index<nx>(shape[n_interior_cells + i], _rotation);
       // std::cout<<"after "<<shape[n_interior_cells +i]<<std::endl;

@@ -55,7 +55,8 @@ def cam_test(n_steps, debug_mode=False):
   PyCAM = CAM.include(const)
   Domain = PyCAM(jump_parameter_composites)
 
-  texture = 'loam_bayreuth'
+  #texture = 'loam_bayreuth'
+  texture = "clay19"
   print("Domain folded")
   
   #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
@@ -70,7 +71,7 @@ def cam_test(n_steps, debug_mode=False):
   intLowBound = []
   intUpBound = []  
   intSize = []
-  with open('particleSizeDistribution/' + texture + '.csv') as csv_file:
+  with open('particleSizeDistribution/' + texture + '_geoderma_waterStable_200.csv') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
@@ -98,21 +99,54 @@ def cam_test(n_steps, debug_mode=False):
 
   if False:
     folder_saveData = 'saveData_test/'+ file_properties + '/'
+    if not os.path.exists(folder_saveData):  os.makedirs(folder_saveData)
     properties = [1, 1, scaling] 
     particle = particleList[10000]
     #particle = particleList[-100]
     #particle = particleList[0]
     #print(particle)
     #particle = [0,100,1,101,2,102]
-    for i in range(100):
-      particle = particleList[i]
+    for particleInd in range(100):
+      particle = particleList[particleInd+10000]
+      
+      if (minFeretDiam[particleInd] < 6.3):
+        properties[1] = 1
+      elif (minFeretDiam[particleInd] < 20):
+        properties[1] = 0.5
+      elif (minFeretDiam[particleInd] < 63):
+        properties[1] = 0.25
+      else:
+          properties[1] = 0.1
+      properties[1] = 1
+    
       position = random.randrange(numCells)
       #position = 0
       stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+      #if(len(particle) > 20000): 
+        #stencil = 0
+      Domain.place_particle(stencil, particle,nx_base, position, faces, properties)#, 
+    for particleInd in range(100):
+      particle = particleList[-(particleInd+1)]
+      
+      if (minFeretDiam[particleInd] < 6.3):
+        properties[1] = 1
+      elif (minFeretDiam[particleInd] < 20):
+        properties[1] = 0.5
+      elif (minFeretDiam[particleInd] < 63):
+        properties[1] = 0.25
+      else:
+          properties[1] = 0.1
+      properties[1] = 1
+    
+      position = random.randrange(numCells)
+      #position = 0
+      stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
+      #if(len(particle) > 20000): 
+        #stencil = 0
       Domain.place_particle(stencil, particle,nx_base, position, faces, properties)#, 
       #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
   else: 
-    newDomain = True
+    newDomain = False
     if newDomain:
       numIntervals = len(intSize)
 

@@ -19,7 +19,7 @@
 #include <random>
 #include <utility>
 #include <vector>
-
+#include <time.h>
 #ifndef ROTATION
 #define ROTATION false
 #endif
@@ -59,8 +59,9 @@ class CellularAutomaton
   }
   static void apply(Domain<nx, fields_array_t>& _domain)
   {
+    //std::srand((unsigned) std::time(NULL));
     // std::shuffle(_domain.building_units.begin(), _domain.building_units.end(),
-    //  std::default_random_engine(std::rand()));
+     std::default_random_engine(std::rand());
     // std::sort(_domain.building_units.begin(), _domain.building_units.end(), compare_size_bu);
 
     // this way easier to handle deprecated bu and random bu numbers.
@@ -170,7 +171,9 @@ std::cout << "Time taken by oneBU: "
    **********************************************************************************************/
   static void move_bu(CAM::BuildingUnit<nx>& _unit, Domain<nx, fields_array_t>& _domain)
   {
+   // std::cout<<"move_bu ";
     // auto start = std::chrono::high_resolution_clock::now();
+    
 #if STENCIL_4_ALL_BUS
     constexpr std::array<unsigned int, get_nof_stencil_cells<nx, const_stencil_size>()>
       possible_moves = CAM::get_stencil_c<nx, const_stencil_size>();
@@ -201,9 +204,16 @@ std::cout << "Time taken by oneBU: "
     std::vector<
       std::tuple<unsigned int, std::array<int, CAM::n_DoF_basis_rotation<nx>()>, unsigned int>>
       best_move_rotation;
-    best_move_rotation.push_back(std::make_tuple(0, no_rotation, 0));
-    double current_attraction, attraction = 0.;
+      std::vector<
+    std::tuple<unsigned int, std::array<int, CAM::n_DoF_basis_rotation<nx>()>, unsigned int>>
+      all_move_rotation;
+
+    //best_move_rotation.push_back(std::make_tuple(0, no_rotation, 0));
+    double current_attraction, attraction_position = 0, max_Edge_position = 0, attraction = 0.;
+    std::array<double,2> return_value;
     unsigned int rotation_point = 0;
+
+
 #if ROTATION
     for (unsigned int r = 0; r < _unit.get_rotation_points().size(); r++)
     {
@@ -232,14 +242,29 @@ std::cout << "Time taken by oneBU: "
           {
         // auto start = std::chrono::high_resolution_clock::now();
 #if ROTATION
-            current_attraction = get_attraction_bu(move, rotated_unit, _domain);
+            return_value = get_attraction_bu(move, rotated_unit, _domain);
 #else
-        current_attraction = get_attraction_bu(move, _unit, _domain);
+       return_value = get_attraction_bu(move, _unit, _domain);
 #endif
+      current_attraction = return_value[0];
+
+      if(move == 0 &&  rotation == no_rotation )
+      {
+        /*unsigned int sum = 0;
+        for(unsigned int mm = 0; mm < rotation.size(); mm++ )
+          sum+= rotation[mm];
+        if(sum != 0)
+        std::cout<<"rot "<<sum<<std::endl;*/
+        attraction_position = current_attraction;
+        max_Edge_position = return_value[1];
+      }
             /* auto stop = std::chrono::high_resolution_clock::now();
    auto  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
    std::cout << "Time taken by attraction: "
         << duration.count() << " microseconds" << std::endl;*/
+            if  (current_attraction > double_min)
+              all_move_rotation.push_back(std::make_tuple(move, rotation, rotation_point));
+
             if (current_attraction > attraction)
             {
               best_move_rotation.clear();
@@ -262,9 +287,29 @@ std::cout << "Time taken by evaulate one rotation: "
       }
     }
 #endif
+   /* unsigned int randNum = std::rand() % 100;
+    unsigned int probalitiy_break_up = 75;
+    if(CAM::WeightParticleConnections.POM_Mineral_reactive == max_Edge_position)
+    probalitiy_break_up = 90;
+
+   
+   // std::cout<<"randNum "<<randNum<<" ";
+   if(randNum > probalitiy_break_up)
+    {
+    unsigned int randNum2 = 0;
+    if(all_move_rotation.size() != 1)
+    randNum2 = (std::rand() % (all_move_rotation.size()-1) + 1);
+      do_move_bu(all_move_rotation[randNum2], _unit,
+               _domain.domain_fields);
+    
+    }
+    else */
+    {
     // auto start = std::chrono::high_resolution_clock::now();
     do_move_bu(best_move_rotation[std::rand() % best_move_rotation.size()], _unit,
                _domain.domain_fields);
+    }
+    //std::cout<<" done"<<std::endl;
     /* auto stop = std::chrono::high_resolution_clock::now();
 auto  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 std::cout << "Time taken by DoMove: "
@@ -309,6 +354,7 @@ std::cout << "Time taken by DoMove: "
    **********************************************************************************************/
   static void move_composites(CAM::Composite<nx>& _composite, Domain<nx, fields_array_t>& _domain)
   {
+    //std::cout<<"move_composites "<<std::endl;
     fields_array_t& _domain_fields = _domain.domain_fields;
     std::vector<unsigned int> indices(_composite.field_indices.size(), 0);
     for (unsigned int i = 0; i < _composite.field_indices.size(); i++)
@@ -325,6 +371,9 @@ std::cout << "Time taken by DoMove: "
     std::vector<
       std::tuple<unsigned int, std::array<int, CAM::n_DoF_basis_rotation<nx>()>, unsigned int>>
       best_move_rotation;
+    std::vector<
+      std::tuple<unsigned int, std::array<int, CAM::n_DoF_basis_rotation<nx>()>, unsigned int>>
+      all_move_rotation;
 
     double current_attraction, attraction = 0.;
     std::vector<CAM::BuildingUnit<nx>> bus;
@@ -347,13 +396,16 @@ std::cout << "Time taken by DoMove: "
     rotation_center = 0;
     std::array<int, CAM::n_DoF_basis_rotation<nx>()> rotation;
     std::fill(rotation.begin(), rotation.end(), 0);
-    best_move_rotation.push_back(std::make_tuple(0, no_rotation, 0));
+    //best_move_rotation.push_back(std::make_tuple(0, no_rotation, 0));
 #endif
       std::for_each(
         possible_moves.begin(), possible_moves.end(),
         [&](unsigned int move)
         {
-          current_attraction = get_attraction_composite(move, bus, _domain);
+          current_attraction = get_attraction_composite(move, bus, _domain)[0];
+
+          if  (current_attraction > double_min)
+           all_move_rotation.push_back(std::make_tuple(move, rotation, rotation_center));
 
           if (current_attraction > attraction)
           {
@@ -367,11 +419,11 @@ std::cout << "Time taken by DoMove: "
 #if (ROTATION && ROTATION_COMPOSITES)
     }
 #endif
+    
     for (unsigned int i = 0; i < _composite.field_indices.size(); i++)
     {
       _domain_fields[_composite.field_indices[i]] = indices[i];
     }
-
     std::tuple<unsigned int, std::array<int, CAM::n_DoF_basis_rotation<nx>()>, unsigned int>
       chosen_move_rotation = best_move_rotation[std::rand() % best_move_rotation.size()];
 
@@ -391,14 +443,14 @@ std::cout << "Time taken by DoMove: "
     if(identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::Soil)
     {
       //TODO
-      return  5 * charge_face1 * charge_face2;
+      return  CAM::WeightParticleConnections.Mineral_Mineral_reactive * charge_face1 * charge_face2;
     }
     if ((identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::POM) || 
     (identity1 == CAM::ParticleIdentities::POM && identity2 == CAM::ParticleIdentities::Soil))
     {
       //TODO
      // std::cout<<"POM "<<charge_face1 << " "<<charge_face2<<std::endl;
-       return 10 * charge_face1  + charge_face2 * 10;
+       return CAM::WeightParticleConnections.POM_Mineral_reactive  * charge_face1  + charge_face2;
 
     }
     // return charge_face1 && charge_face2;
@@ -414,11 +466,12 @@ std::cout << "Time taken by DoMove: "
    * \param _unit               building unit
    * \retval  attraction      Amount of neighbours.
    **********************************************************************************************/
-  static double get_attraction_bu(const unsigned int move,
+  static std::array<double,2> get_attraction_bu(const unsigned int move,
                                   const CAM::BuildingUnit<nx>& _unit,
                                   const Domain<nx, fields_array_t>& _domain)
   {
-    double attraction = 0.;
+    double maxEdge = 0;
+    double attraction_edge, attraction = 0.;
     unsigned int aiming, neigh_index, field_index;
     unsigned int index_begin_bound = (_unit.get_shape().size() - _unit.get_boundary().size());
 #if FACE_ATTRACTIVITY
@@ -431,7 +484,7 @@ std::cout << "Time taken by DoMove: "
       aiming = aim<nx>(field_index, move);
       if (_domain.domain_fields[aiming] != _unit.get_number() &&
           _domain.domain_fields[aiming] != 0)  // occupied by cell
-        return double_min;
+        return {double_min, maxEdge};
     }
     // boundary cell
     // if (i >= index_begin_bound)
@@ -441,7 +494,7 @@ std::cout << "Time taken by DoMove: "
       aiming = aim<nx>(field_index, move);
       if (_domain.domain_fields[aiming] != _unit.get_number() &&
           _domain.domain_fields[aiming] != 0)  // occupied by cell
-        return double_min;
+        return {double_min,maxEdge};
 
 #if FACE_ATTRACTIVITY
       const std::array<double, nx.size()* 2>& faces_unit =
@@ -471,8 +524,9 @@ std::cout << "Time taken by DoMove: "
 
           // attraction
           //std::cout<<get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity)<<std::endl;
-          attraction +=
-            get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity);
+          attraction_edge =  get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity);
+          attraction += attraction_edge;
+          maxEdge = attraction_edge < maxEdge ? maxEdge : attraction_edge;
           
 #else
           attraction += 1;
@@ -480,8 +534,8 @@ std::cout << "Time taken by DoMove: "
         }
       }
     }
-
-    return attraction;
+  //std::cout<<"atrraction "<<attraction<<std::endl;
+    return {attraction,maxEdge} ;
   }
   /*!*********************************************************************************************
    * \brief   Check attraction of the possible moves for merged bus.
@@ -491,20 +545,26 @@ std::cout << "Time taken by DoMove: "
    * \param _domain           Domain object
    * \retval  attraction      Amount of neighbours.
    **********************************************************************************************/
-  static double get_attraction_composite(const unsigned int move,
+  static std::array<double,2> get_attraction_composite(const unsigned int move,
                                          const std::vector<CAM::BuildingUnit<nx>>& bus,
                                          const Domain<nx, fields_array_t>& _domain)
   {
-    double attraction_bu, attraction = 0.;
+    double attraction_bu, maxEdge = 0, attraction = 0.;
+    std::array<double,2> sumAttraction_maxEdge = {0,0};
     for (const CAM::BuildingUnit<nx>& bu : bus)
     {
-      attraction_bu = get_attraction_bu(move, (bu), _domain);
+      std::array<double,2> sumAttraction_maxEdge_bu = get_attraction_bu(move, (bu), _domain);
+
+      attraction_bu = sumAttraction_maxEdge_bu [0];
       if (attraction_bu == double_min)
-        return double_min;
+        return {double_min, maxEdge};
       else
         attraction += attraction_bu;
+
+      maxEdge = sumAttraction_maxEdge[1] < maxEdge ? maxEdge : sumAttraction_maxEdge[1];
+
     }
-    return attraction;
+    return {attraction, maxEdge};
   }
 };
 }  // namespace CAM
