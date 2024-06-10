@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import csv
 import random
 
-n_steps =100
+n_steps =250
 def stencil_size(jump_parameter, area, nx):
   return min(5,np.ceil(jump_parameter/(area ** (1.0/len(nx)))))
 
@@ -48,7 +48,7 @@ def cam_test(n_steps, debug_mode=False):
   
   jump_parameter_composites  = 20/scaling
   jump_parameter = 20/scaling
-  aimPor = 0.35
+  aimPor = 0.5
   numCells = np.prod(const.nx)
   
   faces = [1] * 4
@@ -147,6 +147,7 @@ def cam_test(n_steps, debug_mode=False):
       #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
   else: 
     newDomain = False
+    print("newDomain ", newDomain)
     if newDomain:
       numIntervals = len(intSize)
 
@@ -238,7 +239,7 @@ def cam_test(n_steps, debug_mode=False):
           properties[1] = 0.25
         else:
             properties[1] = 0.1
-
+        #properties[1] = 1
         Domain.place_particle(stencil, particle,nx_base,int(position), faces, properties)
 
 

@@ -450,7 +450,7 @@ std::cout << "Time taken by DoMove: "
     {
       //TODO
      // std::cout<<"POM "<<charge_face1 << " "<<charge_face2<<std::endl;
-       return CAM::WeightParticleConnections.POM_Mineral_reactive  * charge_face1  + charge_face2;
+       return CAM::WeightParticleConnections.POM_Mineral_reactive  * charge_face1  + CAM::WeightParticleConnections.POM_Mineral_reactive * charge_face2;
 
     }
     // return charge_face1 && charge_face2;
@@ -521,7 +521,6 @@ std::cout << "Time taken by DoMove: "
 
           // opposite face
           opposite_face = (j % 2 == 0) ? j + 1 : j - 1;
-
           // attraction
           //std::cout<<get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity)<<std::endl;
           attraction_edge =  get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity);
