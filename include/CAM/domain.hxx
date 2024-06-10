@@ -84,10 +84,13 @@ class Domain
       CAM::jump_parameter_composite = _jump_parameter_composites;
     else
       CAM::jump_parameter_composite = 5;  // double _jump_parameter_composites = 1.0
+
     CAM::stencils_precomputed = get_n_stencils<nx>(jump_parameter_composite);
+
     if constexpr (std::is_same<fields_array_t,
                                std::vector<typename fields_array_t::value_type>>::value)
       domain_fields.resize(n_fields<nx>(), 0);
+    //  maximum_balls_fields.resize(n_fields<nx>(), 0);
     else
     {
       static_assert(
@@ -95,8 +98,10 @@ class Domain
                      std::array<typename fields_array_t::value_type, n_fields<nx>()>>::value,
         "The fields array has incorrect size");
       domain_fields.fill(0);
+     // maximum_balls_fields.fill(0);
     }
     max_field_number = 0;
+    nof_pore_space_cells = CAM::n_fields<nx>();
   }
   /*!*********************************************************************************************
    * \brief Place any building unit (bu) into the domain
@@ -130,10 +135,9 @@ class Domain
       domain_fields[field] = _unit.get_number();
     }
     building_units.push_back(_unit);
+    nof_pore_space_cells -= _unit.get_shape().size();
     return true;
   }
-  //TODO maximum Ball
-  
   /*!*********************************************************************************************
    * \brief  Finds composites (particles containing more then one bu) in domain and stores
    * Combining particles/subaggregates as long as the connections are above a minimum threshold
@@ -333,10 +337,40 @@ class Domain
   {
     return domain_fields;
   }
+  //TODO maximum Ball
+ /* const fields_array_t&  maximum_ball() const
+  {
+    for(unsigned int s = 0; s < *std::max_element(nx.begin(), nx.end())/2; s++)
+    {
+
+    
+    std::vector<unsigned int> possible_moves = get_stencil<nx>(s);
+    for(unsigned int i = 0; i < domain_fields.size(); i++)
+    {
+      for(unsigned int m = 0; m < possible_moves.size())
+      aim<nx>(domain_fields[i], )
+    }
+    }
+    return maximum_balls_fields;
+  }*/
+  /*!***********************************************************************************************
+   * \brief   Returns porosity
+   *
+   * \retval  porosity     
+   ************************************************************************************************/
+ const double get_porosity() const
+  {
+    //TODO test
+    return nof_pore_space_cells / (double)CAM::n_fields<nx>();
+  }
   /*!***********************************************************************************************
    * \brief   Array of particle locations.
    ************************************************************************************************/
   fields_array_t domain_fields;
+    /*!***********************************************************************************************
+   * \brief   fields with size of maximimum balls 
+   ************************************************************************************************/
+  fields_array_t maximum_balls_fields;
   /*!***********************************************************************************************
    * \brief   Vector of particles.
    ************************************************************************************************/
@@ -351,7 +385,8 @@ class Domain
    * contains
    ************************************************************************************************/
   std::vector<Particle> particles;
-
+  unsigned int nof_pore_space_cells;
+  
   // -------------------------------------------------------------------------------------------------
   // PRINTING SECTION STARTS HERE
   // -------------------------------------------------------------------------------------------------

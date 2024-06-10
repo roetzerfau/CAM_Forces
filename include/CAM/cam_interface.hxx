@@ -249,6 +249,7 @@ class CAMInterface
   }
   double porosity_d()
   {
+   // return domain.get_porosity();
     return CAM::Evaluation<nx, fields_array_t>::porosity(domain);
   }
   double average_particle_size_d()

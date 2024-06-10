@@ -55,7 +55,7 @@ def cam_test(n_steps, debug_mode=False):
   PyCAM = CAM.include(const)
   Domain = PyCAM(jump_parameter_composites)
 
-  texture = 'clay19'
+  texture = 'loam_bayreuth'
   print("Domain folded")
   
   #Domain.place_single_cell_bu_randomly(jump_parameter, aimPor , 0)
@@ -70,7 +70,7 @@ def cam_test(n_steps, debug_mode=False):
   intLowBound = []
   intUpBound = []  
   intSize = []
-  with open('particleSizeDistribution/' + texture + '_geoderma_waterStable_200.csv') as csv_file:
+  with open('particleSizeDistribution/' + texture + '.csv') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
@@ -146,8 +146,8 @@ def cam_test(n_steps, debug_mode=False):
 
             print('Start placing particles of size >= ',intLowBound[interval], 'and <', intUpBound[interval])
             particleCandidatesInt = [i for i in range(len(minFeretDiam)) if minFeretDiam[i] >= intLowBound[interval] and minFeretDiam[i] < intUpBound[interval]]
-            fields = Domain.fields()
-            positionCandidates = [i for i in range(len(fields)) if fields[i] == 0]
+            #fields = Domain.fields()
+            #positionCandidates = [i for i in range(len(fields)) if fields[i] == 0]
         else:
           
           randInd =  random.randrange(numCandidates)
@@ -170,10 +170,15 @@ def cam_test(n_steps, debug_mode=False):
 
 
           #position = random.randrange(numCells)
-          position = positionCandidates[random.randrange(len(positionCandidates))]
+          randIndex = random.randrange(len(positionCandidates))
+          position = positionCandidates[randIndex]
           stencil = stencil_size(jump_parameter, len(particle) ,const.nx)
           if( Domain.place_particle(stencil, particle,nx_base, position, faces, properties)):
             particleInd_position.append([candInd, position]) 
+            fields = Domain.fields()
+            positionCandidates = [i for i in range(len(fields)) if fields[i] == 0]
+          #else:
+            #positionCandidates[randIndex] = []
             
         currPor = Domain.porosity_d() 
 
