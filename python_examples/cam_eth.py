@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import csv
 import random
 
-n_steps =250
+n_steps =500
 def stencil_size(jump_parameter, area, nx):
   return min(5,np.ceil(jump_parameter/(area ** (1.0/len(nx)))))
 
@@ -53,7 +53,8 @@ def cam_test(n_steps, debug_mode=False):
   
   faces = [1] * 4
   PyCAM = CAM.include(const)
-  Domain = PyCAM(jump_parameter_composites)
+
+  Domain = PyCAM(jump_parameter_composites, 0.1)
 
   #texture = 'loam_bayreuth'
   texture = "clay19"
@@ -86,11 +87,12 @@ def cam_test(n_steps, debug_mode=False):
   POMparticleAreas = mat['POMparticleAreas'][0]
   POMminFeret = mat['POMminFeret'][0]
   POMsizeDistr = [[10, 0.2],[ 15, 0.3],[ 20 ,0.5]]
+  name = '_compacter'
   amount = 0.005
-  file_properties = 'domain_' + str(Nx)  + '_por_' + str(aimPor) + '_texture_' + texture + '_pxsize_' + str(scaling * 2)
-  file_particleInd_position = 'MineralParticleInd_position_domain_' + file_properties + '.txt'
+  file_properties = 'domain_' + str(Nx)  + '_por_' + str(aimPor) + '_texture_' + texture + '_pxsize_' + str(scaling * 2) + name
+  file_particleInd_position = 'MineralParticleInd_position_domain_' + file_properties +'.txt'
   file_POMParticleInd_position = 'POMParticleInd_position_domain_' + file_properties + '.txt'
-  fileDomain = 'file_domain_' + file_properties+  '.txt'
+  fileDomain = 'file_domain_' + file_properties + '.txt'
   folder_saveData = 'saveData/'+ file_properties + '/'
 
   if not os.path.exists(folder_saveData):  os.makedirs(folder_saveData)

@@ -12,7 +12,7 @@ template <auto nx>
 static constexpr double get_jump_range_composite(const unsigned int _comp_size)
 {
   if(_comp_size > 20000)
-  return 0;
+   return 0;
   
   return std::ceil( jump_parameter_composite / 
          std::pow(

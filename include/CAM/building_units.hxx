@@ -29,7 +29,7 @@ enum ParticleIdentities
 }ParticleIdentities;
 struct WeightParticleConnections
 {
-  double Mineral_Mineral_reactive = 1;
+  double Mineral_Mineral_reactive = 2;
   double POM_Mineral_reactive = 5;
 }WeightParticleConnections;
 

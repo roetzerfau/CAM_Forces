@@ -28,7 +28,7 @@ class CAMInterface
 
  public:
   CAMInterface(const double _jump_parameter_composites = 5,
-               const double _subaggregate_threshold = 0.01)
+               const double _subaggregate_threshold = 0.1)//0.01
   {
     CAM::jump_parameter_composite = _jump_parameter_composites;
     CAM::subaggregate_threshold = _subaggregate_threshold;

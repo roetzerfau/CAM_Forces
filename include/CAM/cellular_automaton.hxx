@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 #include <time.h>
+
 #ifndef ROTATION
 #define ROTATION false
 #endif
@@ -59,9 +60,11 @@ class CellularAutomaton
   }
   static void apply(Domain<nx, fields_array_t>& _domain)
   {
-    //std::srand((unsigned) std::time(NULL));
-    // std::shuffle(_domain.building_units.begin(), _domain.building_units.end(),
-     std::default_random_engine(std::rand());
+      //std::srand((unsigned) std::time(NULL));
+      //unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+     auto rng = std::default_random_engine {};
+     std::shuffle(_domain.building_units.begin(), _domain.building_units.end(),rng);
+     //std::default_random_engine(std::rand());
     // std::sort(_domain.building_units.begin(), _domain.building_units.end(), compare_size_bu);
 
     // this way easier to handle deprecated bu and random bu numbers.
@@ -179,7 +182,7 @@ std::cout << "Time taken by oneBU: "
       possible_moves = CAM::get_stencil_c<nx, const_stencil_size>();
 
 #else
-    // std::cout<<_unit.get_jump_parameter()<<std::endl;
+   // std::cout<<_unit.get_jump_parameter()<<std::endl;
     /*const std::vector<unsigned int> possible_moves =
       CAM::get_stencil<nx>(_unit.get_jump_parameter());*/
     const std::vector<unsigned int> possible_moves =
@@ -443,6 +446,7 @@ std::cout << "Time taken by DoMove: "
     if(identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::Soil)
     {
       //TODO
+      return 1;
       return  CAM::WeightParticleConnections.Mineral_Mineral_reactive * charge_face1 * charge_face2;
     }
     if ((identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::POM) || 
@@ -450,12 +454,13 @@ std::cout << "Time taken by DoMove: "
     {
       //TODO
      // std::cout<<"POM "<<charge_face1 << " "<<charge_face2<<std::endl;
+     return 1;
        return CAM::WeightParticleConnections.POM_Mineral_reactive  * charge_face1  + CAM::WeightParticleConnections.POM_Mineral_reactive * charge_face2;
 
     }
     // return charge_face1 && charge_face2;
    // return -(charge_face1 * charge_face2);
-    	return 0;
+    	return 1;
 
   }
   /*!*********************************************************************************************
@@ -474,6 +479,7 @@ std::cout << "Time taken by DoMove: "
     double attraction_edge, attraction = 0.;
     unsigned int aiming, neigh_index, field_index;
     unsigned int index_begin_bound = (_unit.get_shape().size() - _unit.get_boundary().size());
+    unsigned int identity1, identity2; 
 #if FACE_ATTRACTIVITY
     unsigned int neigh_boundary_cell, opposite_face;
 #endif
@@ -523,6 +529,8 @@ std::cout << "Time taken by DoMove: "
           opposite_face = (j % 2 == 0) ? j + 1 : j - 1;
           // attraction
           //std::cout<<get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity)<<std::endl;
+          unsigned int identity1 = neigh_bu.properties.identity;
+          unsigned int identity2 = _unit.properties.identity;
           attraction_edge =  get_attractivity_between_two_faces(faces_neigh[opposite_face], neigh_bu.properties.identity, faces_unit[j], _unit.properties.identity);
           attraction += attraction_edge;
           maxEdge = attraction_edge < maxEdge ? maxEdge : attraction_edge;
@@ -533,7 +541,27 @@ std::cout << "Time taken by DoMove: "
         }
       }
     }
-  //std::cout<<"atrraction "<<attraction<<std::endl;
+
+   /* if(identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::Soil)
+    {
+
+    }*/
+    if ((identity1 == CAM::ParticleIdentities::Soil && identity2 == CAM::ParticleIdentities::POM) || 
+    (identity1 == CAM::ParticleIdentities::POM && identity2 == CAM::ParticleIdentities::Soil))
+    {
+      if( rand()%101 > 90)
+      attraction = 0;
+
+
+    }
+    else
+    {
+      if( rand()%101 > 75)
+      attraction = 0;
+    }
+
+   //std::cout<<"atrraction "<<attraction<<std::endl;
+    
     return {attraction,maxEdge} ;
   }
   /*!*********************************************************************************************
